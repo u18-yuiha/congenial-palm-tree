@@ -46,7 +46,7 @@ def mk_jumpcut(wk_dir, movie, starts_ends):
         output = subprocess.run(["ffmpeg", "-i", movie, "-ss", str(starts_ends[i][1]), "-t", str(starts_ends[i+1][0]-starts_ends[i][1]), splitfile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-movie_folder = "C:/Users/AraiAkihiko/Videos/Exp/"
+movie_folder = "分割したい動画のパス"
 
 os.chdir(movie_folder)
 wk_dir = os.path.abspath(".")
