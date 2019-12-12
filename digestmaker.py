@@ -1,64 +1,75 @@
-import subprocess
-import os
-def mk_movieList(movie_folder):
-    files = os.listdir(movie_folder)
-    files = [x for x in files if x[-4:] == '.mp4']  ### x[-4]'後ろ4文字目以降'
-    files = [x for x in files if x[0] != '.']
-    return files
+#ffmpeg,ffmpeg-python,pydub,moviepyをインストールしてから使ってください。
 
-def mk_starts_ends(wk_dir, movie):
-    os.chdir(wk_dir)
-    output = subprocess.run(["ffmpeg", "-i", movie, "-af", "silencedetect=noise=-13dB:d=0.5", "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    #"-f", "null", "-"これで、ファイルを出力しないようにしている。ffmprobeでよくない？
-    # "-af", "silencedetect=noise=-33dB:d=0.6"オーディオの設定。ノイズのデシベルと、秒数の指定。
-    print(output)
-    s = str(output)
-    lines = s.split('\\n')
-    #print("\n",lines,1234567890)
-    time_list =[]
-    #######################################################################
-    for line in lines:
-        if "silencedetect" in line:
-            words = line.split(" ")
-            #print("\n",words,11111)
-            for i in range(len(words)):
-                if "silence_start" in words[i]:
-                    #words[i + 1].lstrip("\\r")
-                    #print("\n",12345,words[i + 1])
-                    time_list.append(float(words[i+1].replace('\\r','')))
-                if "silence_end" in words[i]:
-                    #words[i + 1].lstrip("")
-                    time_list.append(float(words[i+1].replace('\\r','')))
-    #####################################################################
-   #print(words,11111)
+#1 動画読み込み,音声抽出(mp3),
+import ffmpeg
+import sys
+
+#入力用のファイルのパス
+path = rf"無音カットしたい動画のファイルのパス"
+#途中出力される無音部分検出用の音声ファイル
+audio_path = rf'途中出力される無音部分検出用の音声ファイルのパス（後で削除することを推奨）'
+"""
+必ず出力用の端子は.mp3にすること!!!
+"""
+#出力用のファイルのパス
+output = rf"出力用のファイルのパス"
+
+
+(
+        ffmpeg
+        .input(path)
+        .output(audio_path, acodec = "mp3", crf=30, preset='fast',vcodec = "-vn")
+        .run()
+    )
+
+#3音声を読み込んで、一定の音量以下の部分を計測(成功)
+from pydub import AudioSegment
+from pydub.silence import *
+
+sound = AudioSegment.from_file(audio_path, format="mp3")
+chunks = detect_silence(
+    sound,
+
+    # 500ms以上の無音がある
+    min_silence_len=500,
+
+    # -15dBFS以下で無音とみなす
+    silence_thresh=-25, 
+
     
     
-    print(time_list)
-    starts_ends = list(zip(*[iter(time_list)]*2))
-    return starts_ends
+    seek_step = 1
+)
 
-def mk_jumpcut(wk_dir, movie, starts_ends):
-    os.chdir(wk_dir)
-    for i in range(len(starts_ends)-1):
-        movie_name = movie.split(".") 
-        splitfile = "./JumpCut/" + movie_name[0] + "_" + str(i) + ".mp4"
-        print(splitfile)
-        output = subprocess.run(["ffmpeg", "-i", movie, "-ss", str(starts_ends[i][1]), "-t", str(starts_ends[i+1][0]-starts_ends[i][1]), splitfile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#print(chunks)
+#4音声の秒数を計測
+duration = sound.duration_seconds
 
 
-movie_folder = "分割したい動画のパス"
+#５、③で得られた無音部分をもとに、音声のある場所を検出、分割。
+merge_list = [[chunks[i][1],chunks[i + 1][0]] for i in range(len(chunks)) if i <= len(chunks) - 2]
 
-os.chdir(movie_folder)
-wk_dir = os.path.abspath(".")
-try:
-    os.mkdir("JumpCut")
-except:
-    pass
+#音声の始まりが無音ではなかった場合,最初の部分をつける
+if chunks[0][0] != 0:
+    merge_list.insert(0,[0,chunks[0][1]])
+#音声の終わりが無音ではなかった場合、最後の部分をつける
+duration = 66.64126984126985
+if chunks[-1][1] != int(duration * 1000):
+    merge_list.insert(-1,[chunks[-1][1],int(duration * 1000)])
 
-movie_list = mk_movieList(movie_folder)
+print(merge_list)
 
-for movie in movie_list:
-    print(movie)
-    starts_ends = mk_starts_ends(wk_dir, movie)
-    print(starts_ends)
-    mk_jumpcut(wk_dir, movie, starts_ends)
+#動画の分割
+#moviepyをインポート
+from moviepy.editor import *
+video = VideoFileClip(path)
+
+clips = {}
+count = 0
+for i in range(len(merge_list)):
+    clips[count] = video.subclip(merge_list[i][0]/1000,merge_list[i][1]/1000)
+    count += 1
+
+videos = [clips[i] for i in range(count)]
+result = concatenate(videos)
+result.write_videofile(output)
