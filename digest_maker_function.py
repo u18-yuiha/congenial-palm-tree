@@ -1,21 +1,21 @@
 import subprocess
 import os
-#import moviepy
+
 from moviepy.editor import *
 import sys
 def mk_starts_ends(movie):
-    
-    output = subprocess.run(["ffmpeg","-vn" ,"-i", movie, "-af", "silencedetect=noise=-13dB:d=0.5", "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,shell=True)
     #"-vn"処理速度向上のため、これで動画部分を無視させている。
     # "-af", "silencedetect=noise=-33dB:d=0.6"オーディオの設定。ノイズのデシベルと、秒数の指定。
-    #print(output)
+    output = subprocess.run(["ffmpeg","-vn" ,"-i", movie, "-af", "silencedetect=noise=-13dB:d=0.5", "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,shell=True)
+    
+
     
     s = str(output)
-    #改行のマークごとに分割
+
     lines = s.split('\\n')
-    #print("\n",lines,1234567890)
+
     time_list =[]
-    #######################################################################
+    
     for line in lines:
         if "silencedetect" in line:
             words = line.split(" ")
@@ -28,11 +28,8 @@ def mk_starts_ends(movie):
                 if "silence_end" in words[i]:
                     #words[i + 1].lstrip("")
                     time_list.append(float(words[i+1].replace('\\r','')))
-    #####################################################################
-   
-    
-    
-    #print(time_list,12345)
+
+
     starts_ends = list(zip(*[iter(time_list)]*2))
     print(starts_ends)
     return starts_ends
@@ -56,17 +53,17 @@ def cut_videos(path,output,chunks):
     if chunks[-1][1] != int(duration * 1000):
         merge_list.insert(-1,[chunks[-1][1],int(duration)])
 
-    #clipsという空のディクトに、音声のある部分を入れていく。
+    
     clips = {}
 
-    #音声のある部分を入れた数をカウントする
+    
     count = 0
 
     for i in range(len(merge_list)):
         clips[count] = video.subclip(merge_list[i][0],merge_list[i][1])
         count += 1
 
-    #listがたのから集合にclipsを入れていく
+    
     videos = [clips[i] for i in range(count)]
     #concatenateで、それらを合体させていく
     result = concatenate(videos)
