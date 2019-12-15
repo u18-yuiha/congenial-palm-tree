@@ -1,13 +1,10 @@
+
 import subprocess
 import os
-def mk_movieList(movie_folder):
-    files = os.listdir(movie_folder)
-    files = [x for x in files if x[-4:] == '.mp4']  ### x[-4]'後ろ4文字目以降'
-    files = [x for x in files if x[0] != '.']
-    return files
 
-def mk_starts_ends(wk_dir, movie):
-    os.chdir(wk_dir)
+
+def mk_starts_ends(movie):
+    
     output = subprocess.run(["ffmpeg","-vn" ,"-i", movie, "-af", "silencedetect=noise=-13dB:d=0.5", "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #"-f", "null", "-"これで、ファイルを出力しないようにしている。ffmprobeでよくない？
     # "-af", "silencedetect=noise=-33dB:d=0.6"オーディオの設定。ノイズのデシベルと、秒数の指定。
@@ -33,33 +30,44 @@ def mk_starts_ends(wk_dir, movie):
    
     
     
-    print(time_list)
+    print(time_list,12345)
     starts_ends = list(zip(*[iter(time_list)]*2))
     print(starts_ends)
     return starts_ends
 
-def mk_jumpcut(wk_dir, movie, starts_ends):
-    os.chdir(wk_dir)
-    for i in range(len(starts_ends)-1):
-        movie_name = movie.split(".") 
-        splitfile = "./JumpCut/" + movie_name[0] + "_" + str(i) + ".mp4"
-        print(splitfile)
-        output = subprocess.run(["ffmpeg", "-i", movie, "-ss", str(starts_ends[i][1]), "-t", str(starts_ends[i+1][0]-starts_ends[i][1]), splitfile], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#mk_starts_ends(path)
+
+#path = '入力する動画のパス'
+#output ='出力する動画のパス'
+path = 'C:\\Users\AraiAkihiko\Videos\Exp\ダイジェストメーカ―サンプル.mp4'
+output ='C:\\Users\AraiAkihiko\Videos\Exp\サブプロセス実験02.mp4'
+chunks = mk_starts_ends(path)
+
+#５、③で得られた無音部分をもとに、音声のある場所を検出、分割。
+merge_list = [[chunks[i][1],chunks[i + 1][0]] for i in range(len(chunks)) if i <= len(chunks) - 2]
 
 
-movie_folder = "分割したい動画のパス"
+print(merge_list)
 
-os.chdir(movie_folder)
-wk_dir = os.path.abspath(".")
-try:
-    os.mkdir("JumpCut")
-except:
-    pass
+#6,⑤で得られた音声のある部分の情報をもとに、動画の分割
+#moviepyをインポート
+from moviepy.editor import *
 
-movie_list = mk_movieList(movie_folder)
+#moviepyに動画を読み込ませる
+video = VideoFileClip(path)
+#clipsという空のディクトに、音声のある部分を入れていく。
+clips = {}
 
-for movie in movie_list:
-    print(movie)
-    starts_ends = mk_starts_ends(wk_dir, movie)
-    print(starts_ends)
-    mk_jumpcut(wk_dir, movie, starts_ends)
+#音声のある部分を入れた数をカウントする
+count = 0
+
+for i in range(len(merge_list)):
+    clips[count] = video.subclip(merge_list[i][0],merge_list[i][1])
+    count += 1
+
+#listがたのから集合にclipsを入れていく
+videos = [clips[i] for i in range(count)]
+#concatenateで、それらを合体させていく
+result = concatenate(videos)
+#.write_videofileで合体させたものを動画として出力。
+result.write_videofile(output)
