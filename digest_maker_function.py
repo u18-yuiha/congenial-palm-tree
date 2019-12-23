@@ -50,7 +50,7 @@ def cut_videos(path,output,chunks):
         merge_list.insert(0,[0,chunks[0][1]])
     #音声の終わりが無音ではなかった場合、最後の部分をつける
 
-    if chunks[-1][1] != int(duration * 1000):
+    if chunks[-1][1] >= int(duration * 1000):
         merge_list.insert(-1,[chunks[-1][1],int(duration)])
 
     
