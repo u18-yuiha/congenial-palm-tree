@@ -106,9 +106,9 @@ def dir_for_check(path):
 #if name == main():
 if True:
     
-    path = rf'C:\Users\AraiAkihiko\Videos\Exp\ダイジェストメーカ―サンプル.mp4'
+    path = rf'入力する動画のパス'
     
-    output =rf'C:\\Users\AraiAkihiko\Videos\Exp\サブプロセス実験06.mp4'
+    output =rf'出力する動画のパス'
     
     path = change(path)
     print(path)
