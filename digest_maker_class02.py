@@ -7,23 +7,29 @@ import os.path
 class DigestMaker:
     
     def __init__(self,path,output = None,threshold = -15,silence_section = 0.5):
-        try:
-            self.path = path
-            self.output = output
-            self.threshold = threshold
-            self.silence_section = silence_section
-            self.video = VideoFileClip(self.path)
-        except OSError:
-            print("外部のアプリケーションとの連携が取れていない可能性があります\nお使いのソフト、パソコンを再起動してみてください。")
+        #try:
+        self.path = path
+        self.output = output
+        self.threshold = threshold
+        self.silence_section = silence_section
+        self.video = VideoFileClip(self.path)
+        #except OSError:
+            #print("外部のアプリケーションとの連携が取れていない可能性があります\nお使いのソフト、パソコンを再起動してみてください。")
             
     
     def get_info(self):
+
+        info = subprocess.run(["echo 'A'"], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
-        info = subprocess.run(["ffmpeg","-vn" ,"-i", self.path, "-af", f"silencedetect=noise={self.threshold}dB:d={self.silence_section}", "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,shell=True)
+        info = subprocess.run(["ffmpeg","-vn" ,"-i", self.path, "-af",
+                                f"silencedetect=noise={self.threshold}dB:d={self.silence_section}",
+                                "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,shell = True,
+                                text = True)
         
         # "-af", "silencedetect=noise=-33dB:d=0.6"オーディオの設定。ノイズのデシベルと、秒数の指定。
         
         info = str(info)
+        #print(info)
         return info
     def silence_detect(self,info):
         self.info = info
@@ -103,25 +109,26 @@ def dir_for_check(path):
     return check_dir
         
     
-#if name == main():
-if True:
+if __name__ == '__main__':
+
     
-    path = rf'入力する動画のパス'
+    path = rf''
     
-    output =rf'出力する動画のパス'
+    output = rf''
     
     path = change(path)
     print(path)
     #入力する動画のパスが存在することの確認
     judge_input = os.path.exists(path)
-    output = change(output)
+    print(judge_input)
     #出力する動画のフォルダーのパスが存在することの確認
+    output = change(output)
     judge_output = dir_for_check(output)
     print(judge_output)
     #出力する動画のファイルのパスが存在しないことの確認
     judge_output = os.path.exists(judge_output)
     judge_not_exist_output = os.path.exists(output)
-    
+
     if judge_input == judge_output == False:
         print("入力用のパスと出力用のパスのどちらも間違っている可能性があります。")
         pass
@@ -136,7 +143,7 @@ if True:
         pass
     else:
         print("読み込みを開始します。")
-        movie = DigestMaker(path,output = output,threshold = "-18",silence_section = "0.1")
+        movie = DigestMaker(path,output = output,threshold = "-35",silence_section = "0.4")
     
           
         try:
@@ -145,8 +152,8 @@ if True:
             print("外部のアプリケーションとの連携が取れていない可能性があります\nお使いのソフト、パソコンを再起動してみてください。")
         else:
             pass
-            #info = movie.get_info()
-        #print(movie.silence_detect(info))
+        info = movie.get_info()
+        print(movie.silence_detect(info))
 
         starts_ends = movie.silence_detect(info)
 
