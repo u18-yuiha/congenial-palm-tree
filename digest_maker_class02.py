@@ -112,15 +112,15 @@ def dir_for_check(path):
 if __name__ == '__main__':
 
     
-    path = rf''
+    path = rf'入力する動画のパス'
     
-    output = rf''
+    output = rf'出力する動画のパス'
     
     path = change(path)
     print(path)
     #入力する動画のパスが存在することの確認
     judge_input = os.path.exists(path)
-    print(judge_input)
+    
     #出力する動画のフォルダーのパスが存在することの確認
     output = change(output)
     judge_output = dir_for_check(output)
